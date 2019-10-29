@@ -41,7 +41,8 @@ class CarlaAckermannControl(object):
         self.lastAckermannMsgReceived = datetime.datetime(datetime.MINYEAR, 1, 1)
         self.vehicle_status = CarlaEgoVehicleStatus()
         self.vehicle_info = CarlaEgoVehicleInfo()
-        self.role_name = rospy.get_param('/carla/ackermann_control/role_name')
+        # self.role_name = rospy.get_param('/carla/ackermann_control/role_name')
+        self.role_name = rospy.get_param("~rolename")
         # control info
         self.info = EgoVehicleControlInfo()
 
