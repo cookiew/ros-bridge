@@ -20,8 +20,6 @@ from threading import Thread, Lock, Event
 import pkg_resources
 import rospy
 
-import carla
-
 from carla_ros_bridge.actor import Actor
 from carla_ros_bridge.communication import Communication
 from carla_ros_bridge.sensor import Sensor
@@ -41,6 +39,8 @@ from carla_ros_bridge.object_sensor import ObjectSensor
 from carla_ros_bridge.walker import Walker
 from carla_ros_bridge.debug_helper import DebugHelper
 from carla_msgs.msg import CarlaActorList, CarlaActorInfo, CarlaControl
+
+import carla
 
 
 class CarlaRosBridge(object):
