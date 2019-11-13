@@ -1,10 +1,10 @@
 <!-- -->
 <launch>
+  <arg name="role_name" default="ego_vehicle" />
+  <arg name="delay" default="0.0" />
   <rosparam file="$(find carla_ackermann_control)/config/settings.yaml" command="load" />
-  <arg name="rolename" />
-  <arg name="delay" default="1.0" />
 
-  <node pkg="carla_ackermann_control" type="carla_ackermann_control_node.py" name="$(arg rolename)_carla_ackermann_control" launch-prefix="bash -c 'sleep $(arg delay); $0 $@' " output="screen">
-    <param name="rolename" value="$(arg rolename)" />
+  <node pkg="carla_ackermann_control" type="carla_ackermann_control_node.py" name="carla_ackermann_control_$(arg role_name)" launch-prefix="bash -c 'sleep $(arg delay); $0 $@' " output="screen">
+    <param name="role_name" value="$(arg role_name)" />
   </node>
 </launch>

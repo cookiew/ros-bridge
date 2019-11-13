@@ -1,5 +1,26 @@
 ## Latest changed
 
+* publish odometry for all traffic participants
+* support drawing markers in CARLA
+* replace /carla/map (msg: CarlaMapInfo) by /carla/world_info (msg: CarlaWorldInfo)
+* added option to reload the CARLA world
+* added node to spawn infrastructure sensors
+* rename /carla/vehicle_marker to /carla/marker (and include walkers)
+* support walkers
+* create rqt plugin to control synchronous mode
+* support synchronous mode
+* publish CarlaStatus
+* remove global_id mapping
+* publish /carla/actor_list
+* carla_ego_vehicle: support sensor_tick within camera/lidar definition
+* support twist_cmd to set velocity of ego vehicle (without respecting the vehicle constraints)
+
+## CARLA-ROS-Bridge 0.9.5.1
+
+* add id to CarlaEgoVehicleInfo datatype
+* rename carla_ros_bridge_msgs to carla_msgs
+* remove 'challenge' mode
+
 ## CARLA-ROS-Bridge 0.9.5
 
 * rename gnss topic from '../gnss' to '../fix'

@@ -18,9 +18,9 @@ from simple_pid import PID
 
 from dynamic_reconfigure.server import Server
 from ackermann_msgs.msg import AckermannDrive
-from carla_ros_bridge_msgs.msg import CarlaEgoVehicleStatus  # pylint: disable=no-name-in-module,import-error
-from carla_ros_bridge_msgs.msg import CarlaEgoVehicleControl  # pylint: disable=no-name-in-module,import-error
-from carla_ros_bridge_msgs.msg import CarlaEgoVehicleInfo  # pylint: disable=no-name-in-module,import-error
+from carla_msgs.msg import CarlaEgoVehicleStatus  # pylint: disable=no-name-in-module,import-error
+from carla_msgs.msg import CarlaEgoVehicleControl  # pylint: disable=no-name-in-module,import-error
+from carla_msgs.msg import CarlaEgoVehicleInfo  # pylint: disable=no-name-in-module,import-error
 from carla_ackermann_control.msg import EgoVehicleControlInfo  # pylint: disable=no-name-in-module,import-error
 from carla_ackermann_control.cfg import EgoVehicleControlParameterConfig  # pylint: disable=no-name-in-module,import-error
 import carla_control_physics as phys  # pylint: disable=relative-import
@@ -41,8 +41,7 @@ class CarlaAckermannControl(object):
         self.lastAckermannMsgReceived = datetime.datetime(datetime.MINYEAR, 1, 1)
         self.vehicle_status = CarlaEgoVehicleStatus()
         self.vehicle_info = CarlaEgoVehicleInfo()
-        # self.role_name = rospy.get_param('/carla/ackermann_control/role_name')
-        self.role_name = rospy.get_param("~rolename")
+        self.role_name = rospy.get_param('~role_name', 'ego_vehicle')
         # control info
         self.info = EgoVehicleControlInfo()
 
@@ -152,7 +151,7 @@ class CarlaAckermannControl(object):
         self.reconfigure_server.set_service.shutdown()
         self.reconfigure_server = None
 
-    def reconfigure_pid_parameters(self, ego_vehicle_control_parameter, dummy_level):
+    def reconfigure_pid_parameters(self, ego_vehicle_control_parameter, _level):
         """
         Callback for dynamic reconfigure call to set the PID parameters
 
@@ -515,7 +514,7 @@ def main():
 
     :return:
     """
-    rospy.init_node('carla_ackermann_control')
+    rospy.init_node('carla_ackermann_control', anonymous=True)
     controller = CarlaAckermannControl()
     try:
         controller.run()

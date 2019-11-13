@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2018-2019 Intel Coporation.
+# Copyright (c) 2018-2019 Intel Corporation.
 #
 # This work is licensed under the terms of the MIT license.
 # For a copy, see <https://opensource.org/licenses/MIT>.
@@ -21,4 +21,4 @@ EgoVehicleControlCurrent current
 EgoVehicleControlStatus status
 
 # the current control output to CARLA
-carla_ros_bridge_msgs/CarlaEgoVehicleControl output
+carla_msgs/CarlaEgoVehicleControl output
