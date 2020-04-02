@@ -37,11 +37,12 @@ import tf
 from std_msgs.msg import Bool
 from sensor_msgs.msg import NavSatFix
 from sensor_msgs.msg import Image
-from carla_msgs.msg import CarlaCollisionEvent  # pylint: disable=no-name-in-module, import-error
-from carla_msgs.msg import CarlaLaneInvasionEvent  # pylint: disable=no-name-in-module, import-error
-from carla_msgs.msg import CarlaEgoVehicleControl  # pylint: disable=no-name-in-module, import-error
-from carla_msgs.msg import CarlaEgoVehicleStatus  # pylint: disable=no-name-in-module, import-error
-from carla_msgs.msg import CarlaEgoVehicleInfo  # pylint: disable=no-name-in-module, import-error
+from carla_msgs.msg import CarlaCollisionEvent
+from carla_msgs.msg import CarlaLaneInvasionEvent
+from carla_msgs.msg import CarlaEgoVehicleControl
+from carla_msgs.msg import CarlaEgoVehicleStatus
+from carla_msgs.msg import CarlaEgoVehicleInfo
+from carla_msgs.msg import CarlaStatus
 
 try:
     import pygame
@@ -85,11 +86,13 @@ class World(object):
         self.hud = hud
         self.role_name = role_name
         self.image_subscriber = rospy.Subscriber(
-            "/carla/{}/camera/rgb/view/image_color".format(self.role_name), Image, self.on_view_image)
+            "/carla/{}/camera/rgb/view/image_color".format(self.role_name),
+            Image, self.on_view_image)
         self.collision_subscriber = rospy.Subscriber(
             "/carla/{}/collision".format(self.role_name), CarlaCollisionEvent, self.on_collision)
         self.lane_invasion_subscriber = rospy.Subscriber(
-            "/carla/{}/lane_invasion".format(self.role_name), CarlaLaneInvasionEvent, self.on_lane_invasion)
+            "/carla/{}/lane_invasion".format(self.role_name),
+            CarlaLaneInvasionEvent, self.on_lane_invasion)
 
     def on_collision(self, data):
         """
@@ -156,20 +159,26 @@ class KeyboardControl(object):
         self.role_name = role_name
         self.hud = hud
 
+        self._autopilot_enabled = False
+        self._control = CarlaEgoVehicleControl()
+        self._steer_cache = 0.0
+
         self.vehicle_control_manual_override_publisher = rospy.Publisher(
-            "/carla/{}/vehicle_control_manual_override".format(self.role_name), Bool, queue_size=1, latch=True)
+            "/carla/{}/vehicle_control_manual_override".format(self.role_name),
+            Bool, queue_size=1, latch=True)
         self.vehicle_control_manual_override = False
         self.auto_pilot_enable_publisher = rospy.Publisher(
             "/carla/{}/enable_autopilot".format(self.role_name), Bool, queue_size=1)
         self.vehicle_control_publisher = rospy.Publisher(
-            "/carla/{}/vehicle_control_cmd".format(self.role_name), CarlaEgoVehicleControl, queue_size=1)
-        self._autopilot_enabled = False
-        self._control = CarlaEgoVehicleControl()
+            "/carla/{}/vehicle_control_cmd_manual".format(self.role_name),
+            CarlaEgoVehicleControl, queue_size=1)
+        self.carla_status_subscriber = rospy.Subscriber(
+            "/carla/status", CarlaStatus, self._on_new_carla_frame)
+
         self.set_autopilot(self._autopilot_enabled)
-        self._steer_cache = 0.0
+
         self.set_vehicle_control_manual_override(
             self.vehicle_control_manual_override)  # disable manual override
-        self.hud.notification("Press 'H' or '?' for help.", seconds=4.0)
 
     def __del__(self):
         self.auto_pilot_enable_publisher.unregister()
@@ -189,6 +198,7 @@ class KeyboardControl(object):
         """
         self.auto_pilot_enable_publisher.publish(Bool(data=enable))
 
+    # pylint: disable=too-many-branches
     def parse_events(self, clock):
         """
         parse an input event
@@ -225,7 +235,19 @@ class KeyboardControl(object):
         if not self._autopilot_enabled and self.vehicle_control_manual_override:
             self._parse_vehicle_keys(pygame.key.get_pressed(), clock.get_time())
             self._control.reverse = self._control.gear < 0
-            self.vehicle_control_publisher.publish(self._control)
+
+    def _on_new_carla_frame(self, data):
+        """
+        callback on new frame
+
+        As CARLA only processes one vehicle control command per tick,
+        send the current from within here (once per frame)
+        """
+        if not self._autopilot_enabled and self.vehicle_control_manual_override:
+            try:
+                self.vehicle_control_publisher.publish(self._control)
+            except ROSException as error:
+                rospy.logwarn("Could not send vehicle control: {}".format(error))
 
     def _parse_vehicle_keys(self, keys, milliseconds):
         """
@@ -273,19 +295,26 @@ class HUD(object):
         self._show_info = True
         self._info_text = []
         self.vehicle_status = CarlaEgoVehicleStatus()
+        self.tf_listener = tf.TransformListener()
         self.vehicle_status_subscriber = rospy.Subscriber(
-            "/carla/{}/vehicle_status".format(self.role_name), CarlaEgoVehicleStatus, self.vehicle_status_updated)
+            "/carla/{}/vehicle_status".format(self.role_name),
+            CarlaEgoVehicleStatus, self.vehicle_status_updated)
         self.vehicle_info = CarlaEgoVehicleInfo()
         self.vehicle_info_subscriber = rospy.Subscriber(
-            "/carla/{}/vehicle_info".format(self.role_name), CarlaEgoVehicleInfo, self.vehicle_info_updated)
+            "/carla/{}/vehicle_info".format(self.role_name),
+            CarlaEgoVehicleInfo, self.vehicle_info_updated)
         self.latitude = 0
         self.longitude = 0
         self.manual_control = False
         self.gnss_subscriber = rospy.Subscriber(
             "/carla/{}/gnss/gnss1/fix".format(self.role_name), NavSatFix, self.gnss_updated)
-        self.tf_listener = tf.TransformListener()
         self.manual_control_subscriber = rospy.Subscriber(
-            "/carla/{}/vehicle_control_manual_override".format(self.role_name), Bool, self.manual_control_override_updated)
+            "/carla/{}/vehicle_control_manual_override".format(self.role_name),
+            Bool, self.manual_control_override_updated)
+
+        self.carla_status = CarlaStatus()
+        self.status_subscriber = rospy.Subscriber(
+            "/carla/status", CarlaStatus, self.carla_status_updated)
 
     def __del__(self):
         self.gnss_subscriber.unregister()
@@ -297,6 +326,13 @@ class HUD(object):
         tick method
         """
         self._notifications.tick(clock)
+
+    def carla_status_updated(self, data):
+        """
+        Callback on carla status
+        """
+        self.carla_status = data
+        self.update_info_text()
 
     def manual_control_override_updated(self, data):
         """
@@ -350,11 +386,16 @@ class HUD(object):
         heading += 'S' if abs(yaw) > 90.5 else ''
         heading += 'E' if 179.5 > yaw > 0.5 else ''
         heading += 'W' if -0.5 > yaw > -179.5 else ''
+        fps = 0
+        if self.carla_status.fixed_delta_seconds:
+            fps = 1 / self.carla_status.fixed_delta_seconds
         self._info_text = [
-            'Vehicle: % 20s' % ' '.join(self.vehicle_info.type.title().split('.')[1:]),
+            'Frame: % 22s' % self.carla_status.frame,
             'Simulation time: % 12s' % datetime.timedelta(
                 seconds=int(rospy.get_rostime().to_sec())),
+            'FPS: % 24.1f' % fps,
             '',
+            'Vehicle: % 20s' % ' '.join(self.vehicle_info.type.title().split('.')[1:]),
             'Speed:   % 15.0f km/h' % (3.6 * self.vehicle_status.velocity),
             u'Heading:% 16.0f\N{DEGREE SIGN} % 2s' % (yaw, heading),
             'Location:% 20s' % ('(% 5.1f, % 5.1f)' % (x, y)),
@@ -372,6 +413,9 @@ class HUD(object):
                                                       self.vehicle_status.control.gear),
             '']
         self._info_text += [('Manual ctrl:', self.manual_control)]
+        if self.carla_status.synchronous_mode:
+            self._info_text += [('Sync mode running:', self.carla_status.synchronous_mode_running)]
+        self._info_text += ['', '', 'Press <H> for help']
 
     def toggle_info(self):
         """
@@ -414,7 +458,7 @@ class HUD(object):
                     v_offset += 18
                 elif isinstance(item, tuple):
                     if isinstance(item[1], bool):
-                        rect = pygame.Rect((bar_h_offset, v_offset + 8), (6, 6))
+                        rect = pygame.Rect((bar_h_offset + 50, v_offset + 8), (6, 6))
                         pygame.draw.rect(display, (255, 255, 255), rect, 0 if item[1] else 1)
                     else:
                         rect_border = pygame.Rect((bar_h_offset, v_offset + 8), (bar_width, 6))
@@ -424,6 +468,7 @@ class HUD(object):
                             rect = pygame.Rect(
                                 (bar_h_offset + f * (bar_width - 6), v_offset + 8), (6, 6))
                         else:
+                            f = 0.0
                             rect = pygame.Rect((bar_h_offset, v_offset + 8), (f * bar_width, 6))
                         pygame.draw.rect(display, (255, 255, 255), rect)
                     item = item[0]
@@ -530,6 +575,7 @@ def main():
 
     pygame.init()
     pygame.font.init()
+    pygame.display.set_caption("CARLA ROS manual control")
     world = None
     try:
         display = pygame.display.set_mode(

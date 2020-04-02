@@ -1,40 +1,23 @@
 <launch>
-  <arg name='enable_rosbag' default='False'/>
-  <rosparam file="$(find carla_ros_bridge)/config/settings.yaml" command="load" />
-  <param name='enable_rosbag' type="boolean" value="False"/>
-  <include file="$(find carla_ros_bridge)/launch/carla_ros_bridge_with_example_ego_vehicle.launch"/>
+    <arg name='host' default='localhost'/>
+    <arg name='port' default='2000'/>
+    <arg name='enable_rosbag' default='False'/>
+    <rosparam file="$(find carla_ros_bridge)/config/settings.yaml" command="load" />
+    <param name='enable_rosbag' type="boolean" value="False"/>
+    <arg name="sensor_definition_file" default="$(find carla_ros_bridge)/test/test_sensors.json"/>
+    <arg name="vehicle_filter" default='vehicle.tesla.model3'/>
 
-  <test test-name="testTopics" pkg="rostest" type="publishtest" time-limit="20.0">
-    <rosparam>
-      topics:
-        - name: /clock
-          timeout: 20
-          negative: False
-        - name: /tf
-          timeout: 20
-          negative: False
-        - name: /carla/map
-          timeout: 20
-          negative: False
-        - name: /carla/vehicle_marker
-          timeout: 20
-          negative: False
-        - name: /carla/objects
-          timeout: 20
-          negative: False
-        - name: /carla/ego_vehicle/odometry
-          timeout: 20
-          negative: False
-        - name: /carla/ego_vehicle/camera/rgb/front/image_color
-          timeout: 20
-          negative: False
-        - name: /carla/ego_vehicle/camera/rgb/front/camera_info
-          timeout: 20
-          negative: False
+    <include file="$(find carla_ros_bridge)/launch/carla_ros_bridge.launch">
+      <arg name='host' value='$(arg host)'/>
+      <arg name='port' value='$(arg port)'/>
+    </include>
 
-    </rosparam>
-  </test>
+    <include file="$(find carla_ego_vehicle)/launch/carla_ego_vehicle.launch">
+        <arg name='host' value='$(arg host)'/>
+        <arg name='port' value='$(arg port)'/>
+        <arg name="vehicle_filter" value='$(arg vehicle_filter)'/>
+        <arg name="sensor_definition_file" value='$(arg sensor_definition_file)'/>
+    </include>
 
-
-
+    <test test-name="testPublishedData" pkg="carla_ros_bridge" type="ros_bridge_client.py" time-limit="20.0"/>
 </launch>

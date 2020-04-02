@@ -1,37 +1,67 @@
-
 # ROS bridge for CARLA simulator
 
 This ROS package aims at providing a simple ROS bridge for CARLA simulator.
 
-__Important Note:__
-This documentation is for CARLA versions *newer* than 0.9.4.
-
 ![rviz setup](./docs/images/rviz_carla_default.png "rviz")
-![depthcloud](./docs/images/depth_cloud_and_lidar.png "depthcloud")
 
-![short video](https://youtu.be/S_NoN2GBtdY)
+## Features
+
+- Provide Sensor Data (Lidar, Cameras (depth, segmentation, rgb), GNSS, Radar, IMU)
+- Provide Object Data (Transforms (via [tf](http://wiki.ros.org/tf)), Traffic light status, Visualization markers, Collision, Lane invasion)
+- Control AD Agents (Steer/Throttle/Brake)
+- Control CARLA (Support synchronous mode, Play/pause simulation, Set simulation parameters)
+
+### Additional Functionality
+
+Beside the bridging functionality, there are many more features provided in separate packages.
+
+| Name                              | Description                                                                                             |
+| --------------------------------- | ------------------------------------------------------------------------------------------------------- |
+| [Carla Ego Vehicle](carla_ego_vehicle/README.md) | Provides a generic way to spawn an ego vehicle and attach sensors to it. |
+| [Carla Manual Control](carla_manual_control/README.md) | A ROS-based visualization and control tool for an ego vehicle (similar to carla_manual_control.py provided by CARLA) |
+| [Carla Infrastructure](carla_infrastructure/README.md) | Provides a generic way to spawn a set of infrastructure sensors defined in a config file. |
+| [Carla Waypoint Publisher](carla_waypoint_publisher/README.md) | Provide routes and access to the Carla waypoint API |
+| [Carla ROS Scenario Runner](carla_ros_scenario_runner/README.md) | ROS node that wraps the functionality of the CARLA [scenario runner](https://github.com/carla-simulator/scenario_runner) to execute scenarios. |
+| [Carla Ackermann Control](carla_ackermann_control/README.md) | A controller to convert ackermann commands to steer/throttle/brake|
+| [Carla AD Agent](carla_ad_agent/README.md) | A basic AD agent, that follows a route, avoids collisions with other vehicles and stops on red traffic lights. |
+| [RVIZ Carla Plugin](rviz_carla_plugin/README.md) | A [RVIZ](http://wiki.ros.org/rviz) plugin to visualize/control CARLA. |
+| [RQT Carla Plugin](rqt_carla_plugin/README.md) | A [RQT](http://wiki.ros.org/rqt) plugin to control CARLA. |
+
+For a quick overview, after following the [Setup section](#setup), please run the [CARLA AD Demo](carla_ad_demo/README.md). It provides a ready-to-use demonstrator of many of the features.
 
 
-# Features
+## Setup
 
-- [x] Cameras (depth, segmentation, rgb) support
-- [x] Transform publications
-- [x] Manual control using ackermann msg
-- [x] Handle ROS dependencies
-- [x] Marker/bounding box messages for cars/pedestrian
-- [x] Lidar sensor support
-- [ ] Rosbag in the bridge (in order to avoid rosbag record -a small time errors)
-- [ ] Add traffic light support
+### For Users
 
-# Setup
+First add the apt repository:
 
-## Create a catkin workspace and install carla_ros_bridge package
+##### For ROS Melodic Users
+    sudo apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 81061A1A042F527D &&
+    sudo add-apt-repository "deb [trusted=yes] http://dist.carla.org/carla-ros-bridge-melodic/ bionic main"
+
+##### For ROS Kinetic Users
+    sudo apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 9BE2A0CDC0161D6C &&
+    sudo add-apt-repository "deb [trusted=yes] http://dist.carla.org/carla-ros-bridge-kinetic xenial main"
+
+Then simply install the ROS bridge:
+
+    sudo apt update &&
+    sudo apt install carla-ros-bridge-<melodic or kinetic>
+
+This will install carla-ros-bridge-<melodic or kinetic> in /opt/carla-ros-bridge
+
+### For Developers
+
+    Create a catkin workspace and install carla_ros_bridge package
 
     #setup folder structure
     mkdir -p ~/carla-ros-bridge/catkin_ws/src
     cd ~/carla-ros-bridge
     git clone https://github.com/carla-simulator/ros-bridge.git
-    cd catkin_ws/src
+    cd ros-bridge
+    git submodule update --init
+    cd ../catkin_ws/src
     ln -s ../../ros-bridge
     source /opt/ros/kinetic/setup.bash
     cd ..
@@ -44,181 +74,242 @@ This documentation is for CARLA versions *newer* than 0.9.4.
     catkin_make
 
 For more information about configuring a ROS environment see
-http://wiki.ros.org/ROS/Tutorials/InstallingandConfiguringROSEnvironment
+<http://wiki.ros.org/ROS/Tutorials/InstallingandConfiguringROSEnvironment>
 
-# Start the ROS bridge
+## Start the ROS bridge
 
-First run the simulator (see carla documentation: http://carla.readthedocs.io/en/latest/)
+First run the simulator (see carla documentation: <http://carla.readthedocs.io/en/latest/>)
 
-    ./CarlaUE4.sh -windowed -ResX=320 -ResY=240 -benchmark -fps=10
+    # run carla in background
+    SDL_VIDEODRIVER=offscreen ./CarlaUE4.sh -opengl
 
+Wait a few seconds
 
-Wait for the message:
+    export PYTHONPATH=$PYTHONPATH:<path-to-carla>/PythonAPI/carla/dist/carla-<carla_version_and_arch>.egg
 
-    Waiting for the client to connect...
+##### For Users
 
-Then start the ros bridge (choose one option):
+    source /opt/carla-ros-bridge/<melodic or kinetic>/setup.bash
 
-    export PYTHONPATH=$PYTHONPATH:<path/to/carla/>/PythonAPI/<your_egg_file>
+##### For Developers
+
     source ~/carla-ros-bridge/catkin_ws/devel/setup.bash
+
+Start the ros bridge (choose one option):
 
     # Option 1: start the ros bridge
     roslaunch carla_ros_bridge carla_ros_bridge.launch
 
-    # Option 2: start the ros bridge together with RVIZ
-    roslaunch carla_ros_bridge carla_ros_bridge_with_rviz.launch
-
-    # Option 3: start the ros bridge together with an example ego vehicle
+    # Option 2: start the ros bridge together with an example ego vehicle
     roslaunch carla_ros_bridge carla_ros_bridge_with_example_ego_vehicle.launch
+
+## Settings
 
 You can setup the ros bridge configuration [carla_ros_bridge/config/settings.yaml](carla_ros_bridge/config/settings.yaml).
 
-As we have not spawned any vehicle and have not added any sensors in our carla world there would not be any stream of data yet.
-
-You can make use of the CARLA Python API script manual_control.py.
-```
-cd <path/to/carla/>
-python manual_control.py --rolename=ego_vehicle
-```
-This spawns a carla client with role_name='ego_vehicle'. 
 If the rolename is within the list specified by ROS parameter `/carla/ego_vehicle/rolename`, the client is interpreted as an controllable ego vehicle and all relevant ROS topics are created.
 
-To simulate traffic, you can spawn automatically moving vehicles by using spawn_npc.py from CARLA Python API.
+### Mode
 
-# Available ROS Topics
+#### Default Mode
 
-## Ego Vehicle
+In default mode (`synchronous_mode: false`) data is published:
 
-### Odometry
+-   on every `world.on_tick()` callback
+-   on every `sensor.listen()` callback
 
-|Topic                          | Type |
-|-------------------------------|------|
-| `/carla/<ROLE NAME>/odometry` | [nav_msgs.Odometry](http://docs.ros.org/api/nav_msgs/html/msg/Odometry.html) |
+#### Synchronous Mode
 
-### Sensors
+CAUTION: In synchronous mode, only the ros-bridge is allowed to tick. Other CARLA clients must passively wait.
 
-The ego vehicle sensors are provided via topics with prefix /carla/ego_vehicle/<sensor_topic>
+In synchronous mode (`synchronous_mode: true`), the bridge waits for all sensor data that is expected within the current frame. This might slow down the overall simulation but ensures reproducible results.
+
+Additionally you might set `synchronous_mode_wait_for_vehicle_control_command` to `true` to wait for a vehicle control command before executing the next tick.
+
+##### Control Synchronous Mode
+
+It is possible to control the simulation execution:
+
+-   Pause/Play
+-   Execute single step
+
+The following topic allows to control the stepping.
+
+| Topic            | Type                                                       |
+| ---------------- | ---------------------------------------------------------- |
+| `/carla/control` | [carla_msgs.CarlaControl](carla_msgs/msg/CarlaControl.msg) |
+
+A [CARLA Control rqt plugin](rqt_carla_control/README.md) is available to publish to the topic.
+
+## Available ROS Topics
+
+### Ego Vehicle
+
+#### Sensors
+
+The ego vehicle sensors are provided via topics with prefix /carla/ego_vehicle/&lt;sensor_topic>
 
 Currently the following sensors are supported:
 
-#### Camera
+##### Camera
 
-|Topic                                 | Type |
-|--------------------------------------|------|
-| `/carla/<ROLE NAME>/camera/rgb/<SENSOR ROLE NAME>/image_color` | [sensor_msgs.Image](http://docs.ros.org/api/sensor_msgs/html/msg/Image.html) |
+| Topic                                                          | Type                                                                                   |
+| -------------------------------------------------------------- | -------------------------------------------------------------------------------------- |
+| `/carla/<ROLE NAME>/camera/rgb/<SENSOR ROLE NAME>/image_color` | [sensor_msgs.Image](http://docs.ros.org/api/sensor_msgs/html/msg/Image.html)           |
 | `/carla/<ROLE NAME>/camera/rgb/<SENSOR ROLE NAME>/camera_info` | [sensor_msgs.CameraInfo](http://docs.ros.org/api/sensor_msgs/html/msg/CameraInfo.html) |
 
-#### Lidar
+##### Lidar
 
-|Topic                                 | Type |
-|--------------------------------------|------|
+| Topic                                                     | Type                                                                                     |
+| --------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
 | `/carla/<ROLE NAME>/lidar/<SENSOR ROLE NAME>/point_cloud` | [sensor_msgs.PointCloud2](http://docs.ros.org/api/sensor_msgs/html/msg/PointCloud2.html) |
 
-#### GNSS
+##### Radar
 
-|Topic                                 | Type |
-|--------------------------------------|------|
-| `/carla/<ROLE NAME>/gnss/front/gnss` | [sensor_msgs.NavSatFix](http://docs.ros.org/api/sensor_msgs/html/msg/NavSatFix.html) |
+| Topic                                               | Type                                                                                                                                          |
+| --------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| `/carla/<ROLE NAME>/radar/<SENSOR ROLE NAME>/radar` | [ainstein_radar_msgs.RadarTargetArray](https://github.com/AinsteinAI/ainstein_radar/blob/master/ainstein_radar_msgs/msg/RadarTargetArray.msg) |
 
-#### Collision Sensor
+Radar data can be visualized on rviz using [ainstein_radar_rviz_plugins](https://wiki.ros.org/ainstein_radar_rviz_plugins).
 
-|Topic                          | Type |
-|-------------------------------|------|
-| `/carla/<ROLE NAME>/collision` | [carla_msgs.CarlaCollisionEvent](carla_msgs/msg/CarlaCollisionEvent.msg) |
+##### IMU
 
-#### Lane Invasion Sensor
+| Topic                    | Type                                                                              |
+| ------------------------ | --------------------------------------------------------------------------------- |
+| `/carla/<ROLE NAME>/imu` | [sensor_msgs.Imu](https://docs.ros.org/melodic/api/sensor_msgs/html/msg/Imu.html) |
 
-|Topic                          | Type |
-|-------------------------------|------|
-| `/carla/<ROLE NAME>/lane_invasion` | [carla_msgs.CarlaLaneInvasionEvent](carla_msgs/msg/CarlaLaneInvasionEvent.msg) |
+##### GNSS
 
-### Object Sensor
+| Topic                                            | Type                                                                                 | Description           |
+| ------------------------------------------------ | ------------------------------------------------------------------------------------ | --------------------- |
+| `/carla/<ROLE NAME>/gnss/<SENSOR ROLE NAME>/fix` | [sensor_msgs.NavSatFix](http://docs.ros.org/api/sensor_msgs/html/msg/NavSatFix.html) | publish gnss location |
 
-|Topic         | Type |
-|--------------|------|
-| `/carla/<ROLE NAME>/objects` | [derived_object_msgs.ObjectArray](http://docs.ros.org/api/derived_object_msgs/html/msg/ObjectArray.html) |
+##### Collision Sensor
 
-Reports all vehicles, except the ego vehicle.
+| Topic                          | Type                                                                     | Description              |
+| ------------------------------ | ------------------------------------------------------------------------ | ------------------------ |
+| `/carla/<ROLE NAME>/collision` | [carla_msgs.CarlaCollisionEvent](carla_msgs/msg/CarlaCollisionEvent.msg) | publish collision events |
 
-### Control
+##### Lane Invasion Sensor
 
-|Topic                                 | Type |
-|--------------------------------------|------|
-| `/carla/<ROLE NAME>/vehicle_control_cmd` (subscriber) | [carla_msgs.CarlaEgoVehicleControl](carla_msgs/msg/CarlaEgoVehicleControl.msg) |
-| `/carla/<ROLE NAME>/vehicle_status` | [carla_msgs.CarlaEgoVehicleStatus](carla_msgs/msg/CarlaEgoVehicleStatus.msg) |
-| `/carla/<ROLE NAME>/vehicle_info` | [carla_msgs.CarlaEgoVehicleInfo](carla_msgs/msg/CarlaEgoVehicleInfo.msg) |
+| Topic                              | Type                                                                           | Description                     |
+| ---------------------------------- | ------------------------------------------------------------------------------ | ------------------------------- |
+| `/carla/<ROLE NAME>/lane_invasion` | [carla_msgs.CarlaLaneInvasionEvent](carla_msgs/msg/CarlaLaneInvasionEvent.msg) | publish events on lane-invasion |
 
-You can stear the ego vehicle from the commandline by publishing to the topic `/carla/<ROLE NAME>/vehicle_control_cmd`.
+#### Object Sensor
+
+| Topic                        | Type                                                                                                     | Description                                      |
+| ---------------------------- | -------------------------------------------------------------------------------------------------------- | ------------------------------------------------ |
+| `/carla/<ROLE NAME>/objects` | [derived_object_msgs.ObjectArray](http://docs.ros.org/api/derived_object_msgs/html/msg/ObjectArray.html) | all vehicles and walkers, except the ego vehicle |
+
+#### Control
+
+| Topic                                                             | Type                                                                           |
+| ----------------------------------------------------------------- | ------------------------------------------------------------------------------ |
+| `/carla/<ROLE NAME>/vehicle_control_cmd` (subscriber)             | [carla_msgs.CarlaEgoVehicleControl](carla_msgs/msg/CarlaEgoVehicleControl.msg) |
+| `/carla/<ROLE NAME>/vehicle_control_cmd_manual` (subscriber)      | [carla_msgs.CarlaEgoVehicleControl](carla_msgs/msg/CarlaEgoVehicleControl.msg) |
+| `/carla/<ROLE NAME>/vehicle_control_manual_override` (subscriber) | [std_msgs.Bool](http://docs.ros.org/api/std_msgs/html/msg/Bool.html)           |
+| `/carla/<ROLE NAME>/vehicle_status`                               | [carla_msgs.CarlaEgoVehicleStatus](carla_msgs/msg/CarlaEgoVehicleStatus.msg)   |
+| `/carla/<ROLE NAME>/vehicle_info`                                 | [carla_msgs.CarlaEgoVehicleInfo](carla_msgs/msg/CarlaEgoVehicleInfo.msg)       |
+
+There are two modes to control the vehicle.
+
+1.  Normal Mode (reading commands from `/carla/<ROLE NAME>/vehicle_control_cmd`)
+2.  Manual Mode (reading commands from `/carla/<ROLE NAME>/vehicle_control_cmd_manual`)
+
+This allows to manually override a Vehicle Control Commands published by a software stack. You can toggle between the two modes by publishing to `/carla/<ROLE NAME>/vehicle_control_manual_override`.
+
+[carla_manual_control](carla_manual_control/) makes use of this feature.
+
+For testing purposes, you can stear the ego vehicle from the commandline by publishing to the topic `/carla/<ROLE NAME>/vehicle_control_cmd`.
 
 Examples for a ego vehicle with role_name 'ego_vehicle':
 
 Max forward throttle:
 
-     rostopic pub /carla/ego_vehicle/vehicle_control_cmd carla_ros_bridge/CarlaEgoVehicleControl "{throttle: 1.0, steer: 0.0}" -r 10
-
+     rostopic pub /carla/ego_vehicle/vehicle_control_cmd carla_msgs/CarlaEgoVehicleControl "{throttle: 1.0, steer: 0.0}" -r 10
 
 Max forward throttle with max steering to the right:
 
-     rostopic pub /carla/ego_vehicle/vehicle_control_cmd carla_ros_bridge/CarlaEgoVehicleControl "{throttle: 1.0, steer: 1.0}" -r 10
-
+     rostopic pub /carla/ego_vehicle/vehicle_control_cmd carla_msgs/CarlaEgoVehicleControl "{throttle: 1.0, steer: 1.0}" -r 10
 
 The current status of the vehicle can be received via topic `/carla/<ROLE NAME>/vehicle_status`.
 Static information about the vehicle can be received via `/carla/<ROLE NAME>/vehicle_info`
 
-#### Carla Ackermann Control
+##### Additional way of controlling
 
-In certain cases, the [Carla Control Command](carla_ros_bridge/msg/CarlaEgoVehicleControl.msg) is not ideal to connect to an AD stack.
-Therefore a ROS-based node ```carla_ackermann_control``` is provided which reads [AckermannDrive](http://docs.ros.org/api/ackermann_msgs/html/msg/AckermannDrive.html) messages.
+| Topic                                       | Type                                                                             |
+| ------------------------------------------- | -------------------------------------------------------------------------------- |
+| `/carla/<ROLE NAME>/twist_cmd` (subscriber) | [geometry_msgs.Twist](http://docs.ros.org/api/geometry_msgs/html/msg/Twist.html) |
+
+CAUTION: This control method does not respect the vehicle constraints. It allows movements impossible in the real world, like flying or rotating.
+
+You can also control the vehicle via publishing linear and angular velocity within a Twist datatype.
+
+Currently this method applies the complete linear vector, but only the yaw from angular vector.
+
+##### Carla Ackermann Control
+
+In certain cases, the [Carla Control Command](carla_msgs/msg/CarlaEgoVehicleControl.msg) is not ideal to connect to an AD stack.
+Therefore a ROS-based node `carla_ackermann_control` is provided which reads [AckermannDrive](http://docs.ros.org/api/ackermann_msgs/html/msg/AckermannDrive.html) messages.
 You can find further documentation [here](carla_ackermann_control/README.md).
 
+### Other Topics
 
-## Other Topics
+#### Object information of other actors
 
-### Object information of all vehicles
+| Topic               | Type                                                                                                     | Description                           |
+| ------------------- | -------------------------------------------------------------------------------------------------------- | ------------------------------------- |
+| `/carla/objects`    | [derived_object_msgs.ObjectArray](http://docs.ros.org/api/derived_object_msgs/html/msg/ObjectArray.html) | all vehicles and walkers              |
+| `/carla/marker`     | [visualization_msgs.Marker](http://docs.ros.org/api/visualization_msgs/html/msg/Marker.html)             | visualization of vehicles and walkers |
+| `/carla/actor_list` | [carla_msgs.CarlaActorList](carla_msgs/msg/CarlaActorList.msg)                                           | list of all carla actors              |
+| `/carla/traffic_lights` | [carla_msgs.CarlaTrafficLightStatusList](carla_msgs/msg/CarlaTrafficLightStatusList.msg)             | list of all traffic lights with their status |
+| `/carla/traffic_lights_info` | [carla_msgs.CarlaTrafficLightInfoList](carla_msgs/msg/CarlaTrafficLightInfoList.msg)             | static information for all traffic lights (e.g. position)|
 
-|Topic         | Type |
-|--------------|------|
-| `/carla/objects` | [derived_object_msgs.ObjectArray](http://docs.ros.org/api/derived_object_msgs/html/msg/ObjectArray.html) |
-| `/carla/vehicle_marker` | [visualization_msgs.Maker](http://docs.ros.org/api/visualization_msgs/html/msg/Marker.html) |
+#### Status of CARLA
 
+| Topic               | Type                                                           | Description                                            |
+| ------------------- | -------------------------------------------------------------- | ------------------------------------------------------ |
+| `/carla/status`     | [carla_msgs.CarlaStatus](carla_msgs/msg/CarlaStatus.msg)       |                                                        |
+| `/carla/world_info` | [carla_msgs.CarlaWorldInfo](carla_msgs/msg/CarlaWorldInfo.msg) | Info about the CARLA world/level (e.g. OPEN Drive map) |
 
-## Map
+### Walker
 
-|Topic         | Type |
-|--------------|------|
-| `/carla/map` | [std_msgs.String](http://docs.ros.org/api/std_msgs/html/msg/String.html) |
+| Topic                                                | Type                                                                         | Description        |
+| ---------------------------------------------------- | ---------------------------------------------------------------------------- | ------------------ |
+| `/carla/walker/<ID>/walker_control_cmd` (subscriber) | [carla_msgs.CarlaWalkerControl](carla_msgs/msg/CarlaWalkerControl.msg)       | Control a walker   |
+| `/carla/walker/<ID>/odometry`                        | [nav_msgs.Odometry](http://docs.ros.org/api/nav_msgs/html/msg/Odometry.html) | odometry of walker |
 
-The OPEN Drive map description is published.
+### Other Vehicles
 
+| Topic                          | Type                                                                         | Description         |
+| ------------------------------ | ---------------------------------------------------------------------------- | ------------------- |
+| `/carla/vehicle/<ID>/odometry` | [nav_msgs.Odometry](http://docs.ros.org/api/nav_msgs/html/msg/Odometry.html) | odometry of vehicle |
 
-# Carla Ego Vehicle
+### Debug Marker
 
-`carla_ego_vehicle` provides a generic way to spawn an ego vehicle and attach sensors to it. You can find further documentation [here](carla_ego_vehicle/README.md).
+It is possible to draw markers in CARLA.
 
+Caution: Markers might affect the data published by sensors.
 
-# Waypoint calculation
+The following markers are supported in 'map'-frame:
 
-To make use of the Carla waypoint calculation a ROS Node is available to get waypoints. You can find further documentation [here](carla_waypoint_publisher/README.md).
+-   Arrow (specified by two points)
+-   Points
+-   Cube
+-   Line Strip
 
+| Topic                              | Type                                                                                                   | Description                 |
+| ---------------------------------- | ------------------------------------------------------------------------------------------------------ | --------------------------- |
+| `/carla/debug_marker` (subscriber) | [visualization_msgs.MarkerArray](http://docs.ros.org/api/visualization_msgs/html/msg/MarkerArray.html) | draw markers in CARLA world |
 
-# ROSBAG recording (not yet tested)
+## Troubleshooting
 
-The carla_ros_bridge could also be used to record all published topics into a rosbag:
-
-    roslaunch carla_ros_bridge client_with_rviz.launch rosbag_fname:=/tmp/save_session.bag
-
-This command will create a rosbag /tmp/save_session.bag
-
-You can of course also use rosbag record to do the same, but using the ros_bridge to do the recording you have the guarentee that all the message are saved without small desynchronization that could occurs when using *rosbag record* in an other process.
-
-
-# Troubleshooting
-
-## ImportError: No module named carla
+### ImportError: No module named carla
 
 You're missing Carla Python. Please execute:
 
-    export PYTHONPATH=$PYTHONPATH:<path/to/carla/>/PythonAPI/<your_egg_file>
+    export PYTHONPATH=$PYTHONPATH:<path/to/carla/>/PythonAPI/carla/dist/<your_egg_file>
 
 Please note that you have to put in the complete path to the egg-file including
 the egg-file itself. Please use the one, that is supported by your Python version.

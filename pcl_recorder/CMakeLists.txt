@@ -8,9 +8,14 @@ find_package(catkin REQUIRED COMPONENTS
   pcl_ros
   roscpp
   sensor_msgs
+  roslaunch
 )
 
 catkin_package()
+
+roslaunch_add_file_check(launch DEPENDENCIES
+  ${PROJECT_NAME}_node
+)
 
 include_directories(
   include

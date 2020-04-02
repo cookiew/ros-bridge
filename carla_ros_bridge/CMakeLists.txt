@@ -7,20 +7,23 @@ find_package(catkin REQUIRED COMPONENTS
   sensor_msgs
   geometry_msgs
   derived_object_msgs
+  ainstein_radar_msgs
   tf
+  roslaunch
 )
 
 catkin_python_setup()
 
 catkin_package()
 
+roslaunch_add_file_check(launch)
 
 include_directories(
    ${catkin_INCLUDE_DIRS}
 )
 
 install(PROGRAMS
-   src/carla_ros_bridge/client.py
+   src/carla_ros_bridge/bridge.py
    DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
 
@@ -37,3 +40,8 @@ install(DIRECTORY
 install(DIRECTORY launch/
   DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}/launch
 )
+
+if(CATKIN_ENABLE_TESTING)
+  find_package(rostest REQUIRED)
+  add_rostest(test/ros_bridge_client.test)
+endif()
