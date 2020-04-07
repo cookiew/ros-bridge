@@ -54,6 +54,7 @@ class CarlaEgoVehicle(object):
         self.actor_filter = rospy.get_param('~vehicle_filter', 'vehicle.*')
         self.actor_spawnpoint = None
         self.role_name = rospy.get_param('~role_name', 'ego_vehicle')
+        self.vehicle_color = rospy.get_param('~color', None)
         # check argument and set spawn_point
         spawn_point_param = rospy.get_param('~spawn_point')
         if spawn_point_param and rospy.get_param('~spawn_ego_vehicle'):
@@ -105,7 +106,10 @@ class CarlaEgoVehicle(object):
         blueprint = random.choice(self.world.get_blueprint_library().filter(self.actor_filter))
         blueprint.set_attribute('role_name', "{}".format(self.role_name))
         if blueprint.has_attribute('color'):
-            color = random.choice(blueprint.get_attribute('color').recommended_values)
+            if self.vehicle_color:
+                color = self.vehicle_color
+            else:
+                color = random.choice(blueprint.get_attribute('color').recommended_values)
             blueprint.set_attribute('color', color)
         # Spawn the vehicle.
         if not rospy.get_param('~spawn_ego_vehicle'):
