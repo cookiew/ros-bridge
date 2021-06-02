@@ -1,3 +1,15 @@
+# project for CS231n
+
+used on kessel
+- run carla 0.9.5 from /opt
+- check out the commit from CARLA ros-bridge repo 5687e398d7148f470661525420f3a13aa5bf8f43
+  - add rviz in launch file
+  - use toyota car
+  - added depth sensor
+- launch file : ```roslaunch carla_ros_bridge carla_ros_bridge_with_example_ego_vehicle.launch``` 
+
+
+
 
 # ROS bridge for CARLA simulator
 
@@ -80,7 +92,7 @@ You can make use of the CARLA Python API script manual_control.py.
 cd <path/to/carla/>
 python manual_control.py --rolename=ego_vehicle
 ```
-This spawns a carla client with role_name='ego_vehicle'. 
+This spawns a carla client with role_name='ego_vehicle'.
 If the rolename is within the list specified by ROS parameter `/carla/ego_vehicle/rolename`, the client is interpreted as an controllable ego vehicle and all relevant ROS topics are created.
 
 To simulate traffic, you can spawn automatically moving vehicles by using spawn_npc.py from CARLA Python API.

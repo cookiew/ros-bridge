@@ -2,7 +2,7 @@
 <launch>
   <arg name='host' default='localhost'/>
   <arg name='port' default='2000'/>
-  <arg name="vehicle_filter" default="vehicle.*" />
+  <arg name="vehicle_filter" default="vehicle.toyota.*" />
 
   <param name="/carla/host" value="$(arg host)" />
   <param name="/carla/port" value="$(arg port)" />

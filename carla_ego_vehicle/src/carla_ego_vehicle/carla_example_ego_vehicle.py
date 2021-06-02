@@ -23,6 +23,14 @@ class CarlaExampleEgoVehicle(CarlaEgoVehicleBase):
         """
         return [
             {
+                'type': 'sensor.camera.depth',
+                'role_name': 'front',
+                'x': 2.0, 'y': 0.0, 'z': 2.0, 'roll': 0.0, 'pitch': 0.0, 'yaw': 0.0,
+                'width': 800,
+                'height': 600,
+                'fov': 100
+            },
+                {
                 'type': 'sensor.camera.rgb',
                 'role_name': 'front',
                 'x': 2.0, 'y': 0.0, 'z': 2.0, 'roll': 0.0, 'pitch': 0.0, 'yaw': 0.0,
